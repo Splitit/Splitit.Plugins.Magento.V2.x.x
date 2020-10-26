@@ -1,0 +1,28 @@
+<?php /* @var $block \Splitit\PaymentGateway\Block\System\Config\LoginAuth */ ?>
+<script>
+require([
+    'jquery'
+], function($) {
+    function getCredsAuthentication() {
+        $.ajax({
+            url: '<?php echo $block->getAjaxUrl() ?>', 
+            type: 'post',
+            dataType: "json",
+            showLoader: true,
+            success: function(result){
+                if(result.status){
+                alert(result.successMessage);  
+                } else{
+                alert(result.errorMessage);
+                } 
+            }
+        });
+    }
+
+    $('#login_auth_button').click(function () {
+        getCredsAuthentication();
+    });
+});
+</script>
+
+<?php echo $block->getButtonHtml() ?>

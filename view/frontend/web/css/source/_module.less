@@ -1,0 +1,93 @@
+.splitit-upstream-content_index {
+    display: flex;
+    justify-content: center;
+}
+
+.splitit-upstream-content_footer {
+    text-align: end;
+}
+
+.splitit-product-block[style] {
+    .lib-typography();
+    font-family: @font-family__base !important; // Tagged !important to override inline styles
+}
+
+:root {
+    .splitit-default-ui {
+        margin-bottom: 75px;
+
+        .splitit-flex-field.invalid {
+            padding-top: 5px;
+            padding-left: 5px;
+        }
+
+        &.grouped .splitit-cc-group,
+        .splitit-installment-picker {
+            .lib-css(border, @checkout-payment-method-title__border);
+            margin-top: 15px;
+
+            .splitit-installment-picker-slider {
+                .splitit-ip-s {
+                    .lib-typography();
+                }
+
+                .splitit-ip-s-line-progress,
+                .splitit-ip-s-line-handle {
+                    background-color: @button-primary__background;
+                }
+            }
+        }
+
+        .splitit-payment-button {
+            .lib-button-primary();
+            box-shadow: none;
+            float: right;
+        }
+
+        .splitit-payment-button.splitit-payment-button { // Additional class added to increase precedence. Not an ideal solution.
+            &:extend(.abs-button-l all);
+        }
+
+        .splitit-payment-schedule .splitit-ps-table td {
+            .lib-css(border-top, @checkout-payment-method-title__border);
+        }
+
+        .splitit-flex-field {
+            .lib-form-element-input(@_type: input-text);
+            padding: 5px;
+            padding-right: 10px;
+        }
+
+        .splitit-payment-schedule {
+            .splitit-ps-h-link-how-works {
+                .lib-css(color, @link__color);
+                .lib-css(text-decoration, @link__text-decoration);
+
+                &:hover,
+                &:focus {
+                    .lib-css(color, @link__hover__color);
+                    .lib-css(text-decoration, @link__hover__text-decoration);
+                }
+            }
+
+            .splitit-ps-table td .splitit-ps-row-content-header.splitit-brand {
+                .lib-css(color, @link__color);
+            }
+        }
+    }
+
+    .splitit-default-ui .splitit-terms-conditions input[type="checkbox"],
+    .checkout-billing-address input[type="checkbox"] {
+        .lib-form-element-choice(@_type: input-checkbox);
+        position: relative;
+        top: 0;
+        display: initial;
+
+        &:checked + label,
+        & + label {
+            background-image: none;
+            padding: 5px 0;
+            display: inline;
+        }
+    }
+}

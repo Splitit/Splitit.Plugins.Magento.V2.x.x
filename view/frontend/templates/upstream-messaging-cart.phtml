@@ -1,0 +1,39 @@
+<?php /** @var \Splitit\PaymentGateway\Block\UpstreamMessagingCart\UpstreamMessaging $block */ ?>
+
+<?php if ($block->canDisplay()) : ?>
+    <!-- Product Placement Block on Cart -->
+    <div class = "splitit-cart-block"
+        data-splitit="true"
+        data-splitit-amount="<?= $block->getOrderTotalPrice() ?>"
+        data-splitit-num-installments="<?= $block->getInstallmentNumber() ?>"
+        data-splitit-type="product-description">
+    </div>
+
+    <!-- Getting upstream content script only if canDisplay() returns true -->
+    <?= $this->getLayout()->createBlock("Splitit\PaymentGateway\Block\UpstreamMessaging")->setTemplate("Splitit_PaymentGateway::upstream-messaging.phtml")->toHtml(); ?>
+
+    <!-- Script to update splitit amount based on order total change -->
+    <script type="text/javascript">
+        require(["jquery"], function ($) {
+            $("body").on('DOMSubtreeModified', ".cart-totals", function () {
+                var grandTotalcontainer = $('.grand').find('.price');
+                //Adding checks to make sure the order total block has loaded as totals information loads late on the cart page.
+                if (grandTotalcontainer.length && typeof grandTotalcontainer[0].firstChild !== undefined) {
+                    if (grandTotalcontainer[0].firstChild !== null) {
+                        var threshold = <?php echo json_encode($block->getThreshold()); ?>;
+                        var priceHtml = grandTotalcontainer[0]['firstChild']['data'];
+                        var newPrice = priceHtml.replace(/[^0-9.]/g, ""); //removes all special chatacters (currency, comma) except for . and numbers
+                        var num = Number(newPrice);
+                        if (num > threshold) {
+                            $('.splitit-cart-block').show(); //in case it was hidden; edge case.
+                            $(".splitit-cart-block").attr('data-splitit-amount', newPrice)
+                            splitit.ui.refresh();
+                        } else {
+                            $('.splitit-cart-block').hide(); //hide if threshold not met (discount applied, etc) - extra measure
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+<?php endif; ?>

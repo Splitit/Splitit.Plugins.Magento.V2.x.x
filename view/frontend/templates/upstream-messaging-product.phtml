@@ -1,0 +1,28 @@
+<?php /** @var \Splitit\PaymentGateway\Block\UpstreamMessaging\UpstreamMessagingProduct $block */ ?>
+
+<?php if ($block->canDisplay()) : ?>
+<!-- Product Placement Block (hidden on load; shows if conditions satisfy) -->
+    <div class = "splitit-product-block"
+        hidden
+        data-splitit="true"
+        data-splitit-amount="<?= $block->getCurrentProductPrice() ?>"
+        data-splitit-num-installments="<?= $block->getInstallmentNumber() ?>"
+        data-splitit-type="product-description">
+    </div>
+
+    <!-- Get upstream content script -->
+    <?= $this->getLayout()->createBlock("Splitit\PaymentGateway\Block\UpstreamMessaging")->setTemplate("Splitit_PaymentGateway::upstream-messaging.phtml")->toHtml(); ?>
+
+    <script type="text/x-magento-init">
+    {
+        "*": {
+            "Splitit_PaymentGateway/js/can_display_content": {
+            "threshold":<?php echo $block->getThresholdAmount(); ?>,
+            "productprice":<?php echo $block->getCurrentProductPrice(); ?>
+            }
+        }
+    }
+    </script>
+<?php endif; ?>
+
+

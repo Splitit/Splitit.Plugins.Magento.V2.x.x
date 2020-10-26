@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Splitit\PaymentGateway\Block\Info">
+        <arguments>
+            <argument name="data" xsi:type="array">
+                <item xsi:type="string" name="is_secure_mode">0</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Configuration reader -->
+    <virtualType name="SplititPaymentGatewayConfig" type="Magento\Payment\Gateway\Config\Config">
+        <arguments>
+            <argument name="methodCode" xsi:type="const">\Splitit\PaymentGateway\Model\Ui\ConfigProvider::CODE</argument>
+        </arguments>
+    </virtualType>
+    <!-- Authorization Request -->
+    <virtualType name="SplititPaymentGatewayAuthorizationRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+        <arguments>
+            <argument name="builders" xsi:type="array">
+                <item name="transaction" xsi:type="string">Splitit\PaymentGateway\Gateway\Request\AuthorizationRequest</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="Splitit\PaymentGateway\Gateway\Request\AuthorizationRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">SplititPaymentGatewayConfig</argument>
+        </arguments>
+    </type>
+
+    <!-- Validator Pool -->
+    <virtualType name="SplititValidatorPool" type="Magento\Payment\Gateway\Validator\ValidatorPool">
+        <arguments>
+            <argument name="validators" xsi:type="array">
+                <item name="availability" xsi:type="string">Splitit\PaymentGateway\Gateway\Validator\AdminAvailabilityHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <!-- End Validator Pool -->
+
+    <type name="Splitit\PaymentGateway\Block\Payment">
+        <arguments>
+            <argument name="config" xsi:type="object">Splitit\PaymentGateway\Model\Ui\ConfigProvider</argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\Config\Controller\Adminhtml\System\Config\Save">
+        <plugin disabled="false" name="Splitit_PaymentGateway_Plugin_Backend_Magento_Config_Controller_Save" sortOrder="10" type="Splitit\PaymentGateway\Plugin\Backend\Magento\Config\Controller\Adminhtml\System\Config\Save"/>
+    </type>
+
+    <type name="Magento\Sales\Block\Adminhtml\Order\View">
+        <plugin disabled="false" name="Splitit_AdminSalesOrder_CancelWithoutRefund" sortOrder="10" type="Splitit\PaymentGateway\Plugin\Magento\Sales\Block\Adminhtml\Order\View" />
+    </type>
+</config>

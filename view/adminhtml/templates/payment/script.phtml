@@ -1,0 +1,23 @@
+<?php
+/** @var Splitit\PaymentGateway\Block\Payment $block */
+
+$code = $block->escapeHtml($block->getCode());
+
+?>
+<script>
+    //<![CDATA[
+    require(
+        [
+            'Splitit_PaymentGateway/js/flexfield_render',
+            'jquery',
+            'domReady!'
+        ], function(FlexField, $) {
+            var config = <?= /* @noEscape */ $block->getPaymentConfig() ?>,
+                payment,
+                form = $('#payment_form_<?= /* @noEscape */ $code ?>');
+
+            config.active = form.length > 0 && !form.is(':hidden');
+            payment = new FlexField(config);
+        });
+    //]]>
+</script>

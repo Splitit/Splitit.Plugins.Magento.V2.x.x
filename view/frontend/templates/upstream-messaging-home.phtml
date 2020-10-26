@@ -1,0 +1,11 @@
+<?php /** @var \Splitit\PaymentGateway\Block\UpstreamMessaging\UpstreamMessagingHomePage $block */ ?>
+
+<?php if ($block->canDisplay()) : ?>
+    <!-- Banner on HomePage -->
+    <div class="splitit-upstream-content_index">
+        <img data-splitit-placeholder="banner" data-splitit-banner="white:use-cc-pay-over-time" width="728" />
+    </div>
+
+    <!-- Getting upstream content script only if canDisplay() returns true -->
+    <?= $this->getLayout()->createBlock("Splitit\PaymentGateway\Block\UpstreamMessaging")->setTemplate("Splitit_PaymentGateway::upstream-messaging.phtml")->toHtml(); ?>
+<?php endif; ?>

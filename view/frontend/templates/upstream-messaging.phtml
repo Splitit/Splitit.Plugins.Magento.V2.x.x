@@ -1,0 +1,9 @@
+<?php /** @var \Splitit\PaymentGateway\Block\UpstreamMessaging $block */ ?>
+<!-- Splitit™ script  -->
+<script>
+    (function(i,s,o,g,r,a,m){i['SplititObject']=r;i[r]=i[r]||function(){
+    (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+    m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+    })(window, document, 'script', '//upstream.production.splitit.com/v1/dist/upstream-messaging.js?v=<?= round(microtime(true)/100) ?>', 'splitit');
+    splitit('init', { apiKey: '<?= $block->getMerchantId() ?>', lang: '<?= $block->getCurrentStoreLanguage() ?>', currency: '<?= $block->getCurrentCurrencyCode() ?>', currencySymbol: '<?= $block->getCurrentCurrencySymbol() ?>', debug: false });
+</script>
