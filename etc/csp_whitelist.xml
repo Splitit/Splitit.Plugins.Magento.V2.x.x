@@ -27,5 +27,10 @@
                 <value id="splitit-style" type="host">*.splitit.com</value>
             </values>
         </policy>
+        <policy id="form-action">
+            <values>
+                <value id="splitit-form" type="host">*.splitit.com</value>
+            </values>
+        </policy>
     </policies>
 </csp_whitelist>

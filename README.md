@@ -6,7 +6,7 @@
 To install, copy the codebase to app/code directory of your Magento website.
 Run the following from your Magento root. This will install the Splitit SDK and related dependencies to support the module methods.
 ``` 
-composer require splitit/sdk:"^1.5.0"
+composer require splitit/module-payment-gateway"
 php bin/magento setup:upgrade
 php bin/magento setup:di:compile
 php bin/magento static:content:deploy

@@ -9,7 +9,7 @@ use Magento\Store\Model\StoreManagerInterface;
 
 class LoginAuth extends Field
 {
-    const TEST_CREDS_ROUTE = 'testcreds/verifycredentials/index';
+    const TEST_CREDS_ROUTE = 'splititpaymentgateway/verifycredentials/index';
 
     /**
      * @var string

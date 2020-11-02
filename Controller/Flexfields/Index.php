@@ -1,27 +1,25 @@
-<?php 
+<?php
 
 namespace Splitit\PaymentGateway\Controller\Flexfields;
 
+use Magento\Checkout\Model\Session;
 use Magento\Framework\App\Action\Context;
-use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Json\Helper\Data;
 use Psr\Log\LoggerInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Splitit\PaymentGateway\Gateway\Login\LoginAuthentication;
+use Splitit\PaymentGateway\Model\Log as LogModel;
+use Splitit\PaymentGateway\Model\LogFactory as LogModelFactory;
+use Splitit\PaymentGateway\Model\ResourceModel\Log as LogResource;
 use SplititSdkClient\Configuration;
-use SplititSdkClient\ObjectSerializer;
 use SplititSdkClient\Api\InstallmentPlanApi;
 use SplititSdkClient\Model\PlanData;
 use SplititSdkClient\Model\ConsumerData;
-use SplititSdkClient\Model\RequestHeader;
 use SplititSdkClient\Model\AddressData;
-use SplititSdkClient\Model\PlanApprovalEvidence;
 use SplititSdkClient\Model\PaymentWizardData;
-use SplititSdkClient\Model\CardData;
 use SplititSdkClient\Model\MoneyWithCurrencyCode;
 use SplititSdkClient\Model\InitiateInstallmentPlanRequest;
-use SplititSdkClient\Model\CreateInstallmentPlanRequest;
 use Splitit\PaymentGateway\Gateway\Config\Config;
 use Splitit\PaymentGateway\Block\UpstreamMessaging;
 use Magento\Framework\Message\ManagerInterface;
@@ -30,28 +28,23 @@ use Splitit\PaymentGateway\Helper\TouchpointHelper;
 class Index extends \Magento\Framework\App\Action\Action
 {
     /**
-     * @var JsonFactory
-    */
-    protected $resultPageFactory;
-
-    /**
      * @var Data
-    */
+     */
     protected $jsonHelper;
 
     /**
      * @var LoggerInterface
-    */
+     */
     protected $logger;
 
     /**
      * @var RequestInterface
-    */
+     */
     protected $request;
 
     /**
      * @var LoginAuthentication
-    */
+     */
     protected $loginAuth;
 
     /**
@@ -75,20 +68,22 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $touchPointHelper;
 
     /**
-     * @param \Magento\Framework\View\Element\Template\Context $context
-     * @param \Magento\Framework\Controller\Result\JsonFactory $resultJsonFactory
-     * @param \Magento\Framework\Json\Helper\Data $jsonHelper
-     * @param \Psr\Log\LoggerInterface $logger
-     * @param \Magento\Framework\App\RequestInterface $request
-     * @param \Splitit\PaymentGateway\Gateway\Login\LoginAuthentication $loginAuth
-     * @param \Splitit\PaymentGateway\Gateway\Config\Config $splititConfig
-     * @param \Splitit\PaymentGateway\Block\UpstreamMessaging $upstreamBlock
-     * @param \Magento\Framework\Message\ManagerInterface $messageManager
-     * @param \Splitit\PaymentGateway\Helper\TouchpointHelper $touchPointHelper
+     * @var Session
      */
+    private $checkoutSession;
+
+    /**
+     * @var LogModelFactory
+     */
+    private $logModelFactory;
+
+    /**
+     * @var LogResource
+     */
+    private $logResource;
+
     public function __construct(
         Context $context,
-        JsonFactory $resultJsonFactory,
         Data $jsonHelper,
         LoggerInterface $logger,
         RequestInterface $request,
@@ -96,9 +91,11 @@ class Index extends \Magento\Framework\App\Action\Action
         Config $splititConfig,
         UpstreamMessaging $upstreamBlock,
         ManagerInterface $messageManager,
-        TouchpointHelper $touchPointHelper
+        TouchpointHelper $touchPointHelper,
+        Session $checkoutSession,
+        LogModelFactory $logModelFactory,
+        LogResource $logResource
     ) {
-        $this->resultJsonFactory = $resultJsonFactory;
         $this->jsonHelper = $jsonHelper;
         $this->logger = $logger;
         $this->request = $request;
@@ -107,6 +104,9 @@ class Index extends \Magento\Framework\App\Action\Action
         $this->upstreamBlock = $upstreamBlock;
         $this->messageManager = $messageManager;
         $this->touchPointHelper = $touchPointHelper;
+        $this->checkoutSession = $checkoutSession;
+        $this->logModelFactory = $logModelFactory;
+        $this->logResource = $logResource;
         parent::__construct($context);
     }
 
@@ -117,7 +117,6 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
-        $resultJson = $this->resultJsonFactory->create();
         $postData = $this->request->getParams();
 
         $touchPointData = $this->touchPointHelper->getTouchPointData();
@@ -151,7 +150,7 @@ class Index extends \Magento\Framework\App\Action\Action
                         {
                             $instArrray[] = $i;
                         }
-                    $installmentRange = implode(',', $instArrray);
+                        $installmentRange = implode(',', $instArrray);
                     }
                 }
             }
@@ -163,20 +162,23 @@ class Index extends \Magento\Framework\App\Action\Action
             }
 
             $initiateReq = new InitiateInstallmentPlanRequest();
-        
+
             $planData = new PlanData();
-        
+
             $planData->setNumberOfInstallments($postData['numInstallments']);
             $planData->setAmount(new MoneyWithCurrencyCode(["value" => $postData['amount'], "currency_code" => $currencyCode]));
             $planData->setAutoCapture(false);
+            $planData->setRefOrderNumber($this->checkoutSession->getQuoteId());
             $is3dSecureEnabled = $this->splititConfig->get3DSecure();
             if ($is3dSecureEnabled) {
                 $planData->setAttempt3DSecure(true);
             } else {
                 $planData->setAttempt3DSecure(false);
             }
-        
+
             $paymentWizard = new PaymentWizardData();
+            $successAsyncUrl = $this->_url->getUrl('splititpaymentgateway/payment/successasync');
+            $paymentWizard->setSuccessAsyncUrl($successAsyncUrl);
             $paymentWizard->setRequestedNumberOfInstallments($installmentRange);
             $paymentWizard->setIsOpenedInIframe(true);
 
@@ -188,7 +190,7 @@ class Index extends \Magento\Framework\App\Action\Action
                 "country" => $postData['billingAddress']['Country'],
                 "zip" => $postData['billingAddress']['Zip']
             ));
-            
+
             $consumerData = new ConsumerData(array(
                 "full_name" => $postData['consumerModel']['FullName'],
                 "email" => $postData['consumerModel']['Email'],
@@ -202,7 +204,7 @@ class Index extends \Magento\Framework\App\Action\Action
                 ->setBillingAddress($billingAddress)
                 ->setConsumerData($consumerData)
                 ->setPaymentWizardData($paymentWizard);
-        
+
             $initResp = $installmentPlanApi->installmentPlanInitiate($initiateReq);
 
             $success = $initResp->getResponseHeader()->getSucceeded();
@@ -217,6 +219,8 @@ class Index extends \Magento\Framework\App\Action\Action
                     "checkoutUrl"            => $initResp->getCheckoutUrl(),
                     "installmentPlanInfoUrl" => $initResp->getInstallmentPlanInfoUrl(),
                 ];
+
+                $this->createOrUpdateLog($fieldData['installmentPlan']['InstallmentPlanNumber']);
 
                 return $this->jsonResponse($fieldData);
             } else {
@@ -240,5 +244,18 @@ class Index extends \Magento\Framework\App\Action\Action
         return $this->getResponse()->representJson(
             $this->jsonHelper->jsonEncode($response)
         );
+    }
+
+    private function createOrUpdateLog($ipn)
+    {
+        $quoteId = $this->checkoutSession->getQuoteId();
+        /** @var LogModel $log */
+        $log = $this->logResource->getByQuote($quoteId);
+        if (!$log) {
+            $log = $this->logModelFactory->create();
+            $log->setQuoteId($this->checkoutSession->getQuoteId());
+        }
+        $log->setInstallmentPlanNumber($ipn);
+        $this->logResource->save($log);
     }
 }

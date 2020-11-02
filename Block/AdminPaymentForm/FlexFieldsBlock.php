@@ -8,8 +8,8 @@ use Magento\Store\Model\StoreManagerInterface;
 
 class FlexFieldsBlock extends Template
 {
-    const FLEXFIELDS_CONTROLLER_ROUTE = 'splititflexfields/flexfields/index';
-    const QUOTE_CONTROLLER_ROUTE = 'adminquote/flexfields/updatequote';
+    const FLEXFIELDS_CONTROLLER_ROUTE = 'splititpaymentgateway/flexfields/index';
+    const QUOTE_CONTROLLER_ROUTE = 'splititpaymentgateway/flexfields/updatequote';
 
     /**
      * @var StoreManagerInterface

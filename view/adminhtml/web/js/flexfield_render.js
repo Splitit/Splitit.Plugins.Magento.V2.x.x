@@ -86,29 +86,29 @@ define([
       var flexFieldsInstance = Splitit.FlexFields.setup({
         fields: {
           cardholderName: {
-            selector: "#card-holder-full-name",
+            selector: "#splitit-card-holder-full-name",
           },
           number: {
-            selector: "#card-number",
+            selector: "#splitit-card-number",
           },
           cvv: {
-            selector: "#cvv",
+            selector: "#splitit-cvv",
           },
           expirationDate: {
-            selector: "#expiration-date",
+            selector: "#splitit-expiration-date",
           },
         },
         installmentPicker: {
           selector: "#installment-picker",
         },
         termsConditions: {
-          selector: "#terms-conditions",
+          selector: "#splitit-terms-conditions",
         },
         errorBox: {
-          selector: "#error-box",
+          selector: "#splitit-error-box",
         },
         paymentButton: {
-          selector: "#btn-pay",
+          selector: "#splitit-btn-pay",
         },
       }).ready(function () {
         var splititFlexFields = this;
@@ -161,7 +161,7 @@ define([
           self.error($t(errMsg + " Please try again!"));
         }
       }).on3dComplete(function (data) {
-        /* This method is only triggered when 3ds is enabled. 
+        /* This method is only triggered when 3ds is enabled.
          * On success it goes to onSucess and on Error goes to onError
          * Displaying error message/going for successful order are being handled in relevant methods.
          */
@@ -179,7 +179,7 @@ define([
 
     submitOrder: function () {
       $('body').trigger('processStop');
-      $('#payment_form_splitit_payment').find('#btn-pay').trigger('click');
+      $('#payment_form_splitit_payment').find('#splitit-btn-pay').trigger('click');
     },
 
     error: function (message) {

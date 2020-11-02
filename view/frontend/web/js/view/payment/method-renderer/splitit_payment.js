@@ -56,29 +56,29 @@ define([
         container: '#splitit-card-data',
         fields: {
           cardholderName: {
-            selector: '#card-holder-full-name'
+            selector: '#splitit-card-holder-full-name'
           },
           number: {
-            selector: '#card-number'
+            selector: '#splitit-card-number'
           },
           cvv: {
-            selector: '#cvv'
+            selector: '#splitit-cvv'
           },
           expirationDate: {
-            selector: '#expiration-date'
+            selector: '#splitit-expiration-date'
           }
         },
         installmentPicker: {
           selector: '#installment-picker'
         },
         termsConditions: {
-          selector: '#terms-conditions'
+          selector: '#splitit-terms-conditions'
         },
         errorBox: {
-          selector: '#error-box'
+          selector: '#splitit-error-box'
         },
         paymentButton: {
-          selector: '#btn-pay'
+          selector: '#splitit-btn-pay'
         }
       }).ready(function () {
         if (checkoutData.getSelectedPaymentMethod() === 'splitit_payment') {
@@ -99,7 +99,7 @@ define([
         }
         var splititFlexFields = this;
         $.ajax({
-          url: '/splititflexfields/flexfields/index',
+          url: '/splititpaymentgateway/flexfields/index',
           method: 'post',
           data: {
             amount: quote.getTotals()().base_grand_total.toFixed(2),
@@ -122,9 +122,9 @@ define([
             if (typeof data == 'undefined' || typeof data.publicToken == 'undefined') {
               // this error alert can be replaced to reportExternalError when this function will be released
               if (typeof reportExternalError != 'undefined') {
-                reportExternalError('Public Tocken is not defined', data);
+                reportExternalError('Public Token is not defined', data);
               } else {
-                console.error('Public Tocken is not defined');
+                console.error('Public Token is not defined');
                 console.error(data);
               }
             } else {
@@ -145,7 +145,7 @@ define([
           thisObj.placeOrderClick();
         }
       }).onError(function (err) {
-        if (err !== "undefined" && err.length > 0) {
+        if (err !== "undefined" && err.length > 0 && err.showError) {
           var errMsg = err[0]['error'];
           thisObj.showError($t(errMsg + " Please try again!"));
         }

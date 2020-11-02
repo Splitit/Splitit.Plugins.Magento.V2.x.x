@@ -5,6 +5,8 @@ namespace Splitit\PaymentGateway\Gateway\Http\Client;
 use Magento\Payment\Gateway\Http\ClientInterface;
 use Magento\Payment\Gateway\Http\TransferInterface;
 use Magento\Payment\Model\Method\Logger;
+use Splitit\PaymentGateway\Model\LogFactory as LogModelFactory;
+use Splitit\PaymentGateway\Model\ResourceModel\Log as LogResource;
 use SplititSdkClient\Api\InstallmentPlanApi;
 use SplititSdkClient\Configuration;
 use Splitit\PaymentGateway\Gateway\Login\LoginAuthentication;
@@ -48,24 +50,40 @@ class SplititCreateApiImplementation implements ClientInterface
     protected $touchPointHelper;
 
     /**
+     * @var LogModelFactory
+     */
+    private $logModelFactory;
+
+    /**
+     * @var LogResource
+     */
+    private $logResource;
+
+    /**
      * @param Logger $logger
      * @param LoginAuthentication $loginAuth
      * @param Config $splititConfig
      * @param LoggerInterface $psrLogger
      * @param TouchpointHelper $touchPointHelper
+     * @param LogModelFactory $logModelFactory
+     * @param LogResource $logResource
      */
     public function __construct(
         Logger $logger,
         LoginAuthentication $loginAuth,
         Config $splititConfig,
         LoggerInterface $psrLogger,
-        TouchpointHelper $touchPointHelper
+        TouchpointHelper $touchPointHelper,
+        LogModelFactory $logModelFactory,
+        LogResource $logResource
     ) {
         $this->logger = $logger;
         $this->loginAuth = $loginAuth;
         $this->splititConfig = $splititConfig;
         $this->psrLogger = $psrLogger;
         $this->touchPointHelper = $touchPointHelper;
+        $this->logModelFactory = $logModelFactory;
+        $this->logResource = $logResource;
     }
 
     /**
@@ -108,6 +126,7 @@ class SplititCreateApiImplementation implements ClientInterface
 
         try {
             $result = $apiInstance->installmentPlanUpdate($updateRequest);
+            $this->updateLog($orderRefNumber, $data['InstallmentPlanNumber']);
         } catch (Exception $e) {
             throw new \Exception(__('Error in adding order reference number to the installment plan. Please try again.'));
             $this->psrLogger($e);
@@ -131,5 +150,17 @@ class SplititCreateApiImplementation implements ClientInterface
         );
 
         return $response;
+    }
+
+    public function updateLog($incrementId, $ipn)
+    {
+        $log = $this->logResource->getByIPN($ipn);
+        if ($log->getId()) {
+            $log->setIncrementId($incrementId);
+            $log->setIsSuccess(true);
+            $this->logResource->save($log);
+        } else {
+            $this->logger->debug(['There is no log record for IPN ' . $ipn]);
+        }
     }
 }

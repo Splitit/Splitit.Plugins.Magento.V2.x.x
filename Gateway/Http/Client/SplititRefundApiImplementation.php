@@ -67,6 +67,9 @@ class SplititRefundApiImplementation implements ClientInterface
     public function placeRequest(TransferInterface $transferObject)
     {
         $data = $transferObject->getBody();
+        if (isset($data['TXN_ID']) && strpos($data['TXN_ID'], '-refund') !== false) {
+            $data['TXN_ID'] = str_replace('-refund', '', $data['TXN_ID']);
+        }
         $touchPointData = $this->touchPointHelper->getTouchPointData();
         $session_id = $this->loginAuth->getLoginSession();
         $envSelected = $this->splititConfig->getEnvironment();
@@ -83,7 +86,7 @@ class SplititRefundApiImplementation implements ClientInterface
                 $session_id
             );
         }
-        
+
         $refundRequest = new RefundPlanRequest();
         $refundRequest->setInstallmentPlanNumber($data['TXN_ID']);
         $refundRequest->setAmount(new MoneyWithCurrencyCode(["value" => $data['Amount'], "currency_code" => "USD"]));

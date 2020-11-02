@@ -1,14 +1,8 @@
 <?xml version="1.0" ?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
     <router id="standard">
-        <route frontName="splititflexfields" id="splititflexfields">
-            <module name="Splitit_PaymentGateway"/>
-        </route>
-        <route frontName="testcreds" id="testcreds">
-            <module name="Splitit_PaymentGateway"/>
-        </route>
-        <route frontName="adminquote" id="adminquote">
-            <module name="Splitit_PaymentGateway"/>
+        <route id="splititpaymentgateway" frontName="splititpaymentgateway">
+            <module name="Splitit_PaymentGateway" />
         </route>
     </router>
 </config>

@@ -3,15 +3,16 @@
 namespace Splitit\PaymentGateway\Gateway\Config;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\ObjectManager;
+use Magento\Framework\App\ProductMetadataInterface;
 use Magento\Store\Model\ScopeInterface;
-use Magento\Framework\Serialize\Serializer\Json;
 use Psr\Log\LoggerInterface;
 
 /**
  * TODO: REFACTOR - Create an interface definition for this class
  * Class Config
  */
-class Config 
+class Config
 {
     const CONFIG_ENVIRONMENT = 'payment/splitit_payment/environment';
     const CONFIG_ACTIVE = 'payment/splitit_payment/active';
@@ -35,18 +36,18 @@ class Config
     private $logger;
 
     /**
-     * Splitit config constructor
-     *
-     * @param ScopeConfigInterface $scopeConfig
+     * @var ProductMetadataInterface
      */
+    private $productMetadata;
+
     public function __construct(
         ScopeConfigInterface $scopeConfig,
-        Json $serialize,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        ProductMetadataInterface $productMetadata
     ) {
         $this->scopeConfig = $scopeConfig;
-        $this->serialize = $serialize;
         $this->logger = $logger;
+        $this->productMetadata = $productMetadata;
     }
 
     /**
@@ -64,7 +65,7 @@ class Config
 
     /**
      * Gets threshold amount for Splitit Payment Option.
-     * 
+     *
      * @return float
      */
     public function getSplititMinOrderAmount()
@@ -86,7 +87,7 @@ class Config
 
     /**
      * Gets API merchant ID.
-     * 
+     *
      * @return string
      */
     public function getApiMerchantId()
@@ -96,7 +97,7 @@ class Config
 
     /**
      * Gets Splitit Username.
-     * 
+     *
      * @return string
      */
     public function getApiUsername()
@@ -106,7 +107,7 @@ class Config
 
     /**
      * Gets Splitit Password.
-     * 
+     *
      * @return string
      */
     public function getApiPassword()
@@ -117,7 +118,7 @@ class Config
 
     /**
      * Gets Payment configuration status.
-     * 
+     *
      * @return bool
      */
     public function isActive()
@@ -127,7 +128,7 @@ class Config
 
     /**
      * Get enabled upstream content page settings.
-     * 
+     *
      * @return string
     */
     public function getUpstreamContentSettings()
@@ -137,14 +138,22 @@ class Config
 
     /**
      * Get installment range from admin config.
-     * 
+     *
      * @return array
     */
     public function getInstallmentRange()
     {
         $installmentRangeValue = $this->getConfig(self::CONFIG_INSTALLMENT_RANGE);
         try {
-            $unserializedata = $this->serialize->unserialize($installmentRangeValue);
+            // Fix for 2.0.0-2.2.0
+            $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+            if (version_compare($this->productMetadata->getVersion(), '2.2.0', '<')) {
+                $serializer = $objectManager->get(\Magento\Framework\Json\Helper\Data::class);
+                $unserializedata = $serializer->jsonDecode($installmentRangeValue);
+            } else {
+                $serializer = $objectManager->get(\Magento\Framework\Serialize\Serializer\Json::class);
+                $unserializedata = $serializer->unserialize($installmentRangeValue);
+            }
             $instRangeArray = array();
             foreach ($unserializedata as $key => $row)
             {
