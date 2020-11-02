@@ -158,7 +158,11 @@ class SplititCreateApiImplementation implements ClientInterface
         if ($log->getId()) {
             $log->setIncrementId($incrementId);
             $log->setIsSuccess(true);
-            $this->logResource->save($log);
+            try {
+                $this->logResource->save($log);
+            } catch (\Exception $e) {
+                // do nothing;
+            }
         } else {
             $this->logger->debug(['There is no log record for IPN ' . $ipn]);
         }

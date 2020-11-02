@@ -20,7 +20,7 @@ All notable changes to this project will be documented in this file
 * Addition of a json helper to support Magento 2.0 & 2.1 versions for json serialization
 * Compatibility with BrainTree plugin
 * Async event logic to cover for when redirection to success page fails
-* Compatibility with Magento versions 2.0.0-2.0.5 
+* Compatibility with Magento versions 2.0.0-2.0.5
 * Creation of credit memo (refund) bug fix
 ---
 

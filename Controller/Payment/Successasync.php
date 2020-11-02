@@ -283,6 +283,10 @@ class Successasync extends Action implements CsrfValidationInterface
         }
         $log->setIncrementId($orderObj->getIncrementId());
         $log->setIsAsync(true);
-        $this->logResource->save($log);
+        try {
+            $this->logResource->save($log);
+        } catch (\Exception $e) {
+            // do nothing;
+        }
     }
 }

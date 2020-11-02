@@ -256,6 +256,10 @@ class Index extends \Magento\Framework\App\Action\Action
             $log->setQuoteId($this->checkoutSession->getQuoteId());
         }
         $log->setInstallmentPlanNumber($ipn);
-        $this->logResource->save($log);
+        try {
+            $this->logResource->save($log);
+        } catch (\Exception $e) {
+            // do nothing;
+        }
     }
 }
