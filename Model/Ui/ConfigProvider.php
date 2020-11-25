@@ -8,7 +8,7 @@ use Splitit\PaymentGateway\Gateway\Config\Config;
 /**
  * Class ConfigProvider
  */
-final class ConfigProvider implements ConfigProviderInterface
+class ConfigProvider implements ConfigProviderInterface
 {
     const CODE = 'splitit_payment';
 

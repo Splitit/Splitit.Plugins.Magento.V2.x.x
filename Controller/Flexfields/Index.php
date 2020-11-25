@@ -6,7 +6,6 @@ use Magento\Checkout\Model\Session;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\Json\Helper\Data;
 use Psr\Log\LoggerInterface;
-use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Splitit\PaymentGateway\Gateway\Login\LoginAuthentication;
 use Splitit\PaymentGateway\Model\Log as LogModel;
@@ -22,7 +21,6 @@ use SplititSdkClient\Model\MoneyWithCurrencyCode;
 use SplititSdkClient\Model\InitiateInstallmentPlanRequest;
 use Splitit\PaymentGateway\Gateway\Config\Config;
 use Splitit\PaymentGateway\Block\UpstreamMessaging;
-use Magento\Framework\Message\ManagerInterface;
 use Splitit\PaymentGateway\Helper\TouchpointHelper;
 
 class Index extends \Magento\Framework\App\Action\Action
@@ -38,11 +36,6 @@ class Index extends \Magento\Framework\App\Action\Action
     protected $logger;
 
     /**
-     * @var RequestInterface
-     */
-    protected $request;
-
-    /**
      * @var LoginAuthentication
      */
     protected $loginAuth;
@@ -56,11 +49,6 @@ class Index extends \Magento\Framework\App\Action\Action
      * @var UpstreamMessaging
      */
     protected $upstreamBlock;
-
-    /**
-     * @var ManagerInterface
-     */
-    protected $messageManager;
 
     /**
      * @var TouchpointHelper
@@ -86,11 +74,9 @@ class Index extends \Magento\Framework\App\Action\Action
         Context $context,
         Data $jsonHelper,
         LoggerInterface $logger,
-        RequestInterface $request,
         LoginAuthentication $loginAuth,
         Config $splititConfig,
         UpstreamMessaging $upstreamBlock,
-        ManagerInterface $messageManager,
         TouchpointHelper $touchPointHelper,
         Session $checkoutSession,
         LogModelFactory $logModelFactory,
@@ -98,11 +84,9 @@ class Index extends \Magento\Framework\App\Action\Action
     ) {
         $this->jsonHelper = $jsonHelper;
         $this->logger = $logger;
-        $this->request = $request;
         $this->loginAuth = $loginAuth;
         $this->splititConfig = $splititConfig;
         $this->upstreamBlock = $upstreamBlock;
-        $this->messageManager = $messageManager;
         $this->touchPointHelper = $touchPointHelper;
         $this->checkoutSession = $checkoutSession;
         $this->logModelFactory = $logModelFactory;
@@ -117,7 +101,7 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
-        $postData = $this->request->getParams();
+        $postData = $this->_request->getParams();
 
         $touchPointData = $this->touchPointHelper->getTouchPointData();
 

@@ -27,11 +27,6 @@ class Updatequote extends \Magento\Framework\App\Action\Action
     protected $logger;
 
     /**
-     * @var RequestInterface
-    */
-    protected $request;
-
-    /**
      * @var CartRepositoryInterface
     */
     protected $quoteRepository;
@@ -41,7 +36,6 @@ class Updatequote extends \Magento\Framework\App\Action\Action
      *
      * @param Context  $context
      * @param PageFactory $resultPageFactory
-     * @param RequestInterface $request
      * @param Data $jsonHelper
      * @param LoggerInterface $logger
      * @param CartRepositoryInterface $quoteRepository
@@ -49,13 +43,11 @@ class Updatequote extends \Magento\Framework\App\Action\Action
     public function __construct(
         Context $context,
         PageFactory $resultPageFactory,
-        RequestInterface $request,
         Data $jsonHelper,
         LoggerInterface $logger,
         CartRepositoryInterface $quoteRepository
     ) {
         $this->resultPageFactory = $resultPageFactory;
-        $this->request = $request;
         $this->jsonHelper = $jsonHelper;
         $this->logger = $logger;
         $this->quoteRepository = $quoteRepository;
@@ -69,7 +61,7 @@ class Updatequote extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
-        $postData = $this->request->getParams();
+        $postData = $this->_request->getParams();
         $quoteId = $postData['quoteId'];
         try {
             $quote = $this->quoteRepository->get($quoteId);

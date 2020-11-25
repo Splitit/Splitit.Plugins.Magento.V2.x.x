@@ -5,10 +5,8 @@ namespace Splitit\PaymentGateway\Controller\Payment;
 use Magento\Framework\App\Action\Action;
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\Framework\Phrase;
 use Magento\Payment\Model\Method\Logger;
 use Magento\Quote\Api\CartRepositoryInterface;
 use Magento\Quote\Model\QuoteFactory;
@@ -28,8 +26,9 @@ use SplititSdkClient\Model\GetInstallmentsPlanSearchCriteriaRequest;
 use SplititSdkClient\Model\PlanData;
 use SplititSdkClient\Model\RefundUnderCancelation;
 use SplititSdkClient\Model\UpdateInstallmentPlanRequest;
+use Magento\Framework\Data\Form\FormKey;
 
-class Successasync extends Action implements CsrfValidationInterface
+class Successasync extends Action
 {
     /**
      * @var ScopeConfigInterface
@@ -110,7 +109,8 @@ class Successasync extends Action implements CsrfValidationInterface
         Config $splititConfig,
         TouchpointHelper $touchPointHelper,
         LogModelFactory $logModelFactory,
-        LogResource $logResource
+        LogResource $logResource,
+        FormKey $formKey
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->resultJsonFactory = $resultJsonFactory;
@@ -126,6 +126,13 @@ class Successasync extends Action implements CsrfValidationInterface
         $this->logModelFactory = $logModelFactory;
         $this->logResource = $logResource;
         parent::__construct($context);
+        /** validation for magento 2.3+. CsrfAwareActionInterface can be use instead */
+        if (interface_exists("\Magento\Framework\App\CsrfAwareActionInterface")) {
+            $request = $this->getRequest();
+            if ($request instanceof RequestInterface && $request->isPost() && empty($request->getParam('form_key'))) {
+                $request->setParam('form_key', $formKey->getFormKey());
+            }
+        }
     }
 
     /**
@@ -218,28 +225,6 @@ class Successasync extends Action implements CsrfValidationInterface
         } else {
             $this->cancelPlan($installmentPlanNumber, $apiInstance);
         }
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function validateForCsrf(RequestInterface $request): ?bool
-    {
-        return true;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
-    {
-        $resultRedirect = $this->resultRedirectFactory->create();
-        $resultRedirect->setPath('*/*/');
-
-        return new InvalidRequestException(
-            $resultRedirect,
-            [new Phrase('Invalid signature.')]
-        );
     }
 
     /**

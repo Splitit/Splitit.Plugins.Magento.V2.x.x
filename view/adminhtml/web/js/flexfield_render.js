@@ -29,7 +29,6 @@ define([
       self.$selector.off("changePaymentMethod." + this.code).on("changePaymentMethod." + this.code, this.changePaymentMethod.bind(this));
       domObserver.get("#" + self.container, function () {
         self.$selector.off("submit");
-        self.loadScript();
       });
       return this;
     },
@@ -40,8 +39,10 @@ define([
     },
 
     changePaymentMethod: function (event, method) {
-      this.loadScript();
-      this.active(method === this.code);
+      if (method === this.code) {
+        this.loadScript();
+        this.active(method === this.code);
+      }
       return this;
     },
 
@@ -53,7 +54,9 @@ define([
       this.disableEventListeners();
       this.active('splitit_payment' === this.code);
       this.enableEventListeners();
-      this.loadScript();
+      if ('splitit_payment' === this.code) {
+        this.loadScript();
+      }
     },
 
     loadScript: function () {

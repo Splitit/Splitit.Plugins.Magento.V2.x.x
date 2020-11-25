@@ -159,12 +159,12 @@ define([
           thisObj.additional_data["succeeded"] = true; //set succeeded true
         }
       });
-      this.FF = flexFieldsInstance;
+      window.SplititFF = flexFieldsInstance;
     },
 
     selectPaymentMethodSplitit: function () {
-      if (!this.FF._isFormVisible) {
-        this.FF.toggle();
+      if (!window.SplititFF._isFormVisible) {
+        window.SplititFF.toggle();
       }
       return this.selectPaymentMethod();
     },

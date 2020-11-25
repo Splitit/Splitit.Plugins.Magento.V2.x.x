@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file
 -
 
+### 2.3.0
+
+* Compatibility with php7.0 fix
+* Fix validation on admin order creation page
+
 ### 2.2.0
 
 * environmental js & css urls adjusted to address the appropriate Splitit environment.

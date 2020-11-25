@@ -2,10 +2,8 @@
 
 namespace Splitit\PaymentGateway\Block\System\Config;
 
-use Magento\Backend\Block\Template\Context;
 use Magento\Config\Block\System\Config\Form\Field;
 use Magento\Framework\Data\Form\Element\AbstractElement;
-use Magento\Store\Model\StoreManagerInterface;
 
 class LoginAuth extends Field
 {
@@ -15,25 +13,6 @@ class LoginAuth extends Field
      * @var string
      */
     protected $_template = 'Splitit_PaymentGateway::system/config/loginauth-button.phtml';
-
-    /**
-     * @var StoreManagerInterface
-     */
-    protected $storeManager;
-
-    /**
-     * @param Context $context
-     * @param StoreManagerInterface $storeManager
-     * @param array $data
-     */
-    public function __construct(
-        Context $context,
-        StoreManagerInterface $storeManager,
-        array $data = []
-    ) {
-        $this->storeManager = $storeManager;
-        parent::__construct($context, $data);
-    }
 
     /**
      * Remove scope label
@@ -65,7 +44,7 @@ class LoginAuth extends Field
      */
     public function getAjaxUrl()
     {
-        $baseUrl = $this->storeManager->getStore()->getBaseUrl();
+        $baseUrl = $this->_storeManager->getStore()->getBaseUrl();
         return $baseUrl . self::TEST_CREDS_ROUTE;
     }
 

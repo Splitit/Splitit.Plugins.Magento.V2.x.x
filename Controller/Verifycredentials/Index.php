@@ -11,11 +11,6 @@ use Psr\Log\LoggerInterface;
 class Index extends \Magento\Framework\App\Action\Action 
 {
     /**
-     * @var ResultFactory
-    */
-    protected $resultFactory;
-
-    /**
      * @var LoggerInterface
     */
     protected $logger;
@@ -32,19 +27,16 @@ class Index extends \Magento\Framework\App\Action\Action
 
     /**
      * @param \Magento\Framework\View\Element\Template\Context $context
-     * @param \Magento\Framework\Controller\ResultFactory $resultFactory
      * @param \Psr\Log\LoggerInterface $logger
      * @param \Splitit\PaymentGateway\Gateway\Login\LoginAuthentication $loginAuth
      * @param \Splitit\PaymentGateway\Gateway\Config\Config $splititConfig
      */
     public function __construct(
         Context $context,
-        ResultFactory $resultFactory,
         LoggerInterface $logger,
         LoginAuthentication $loginAuth,
         Config $splititConfig
     ) {
-        $this->resultFactory = $resultFactory;
         $this->logger = $logger;
         $this->loginAuth = $loginAuth;
         $this->splititConfig = $splititConfig;

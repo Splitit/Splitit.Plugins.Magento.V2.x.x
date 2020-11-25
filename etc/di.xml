@@ -185,4 +185,7 @@
         </arguments>
     </type>
 
+    <type name="Magento\Payment\Model\Method\Adapter">
+        <plugin disabled="false" name="Splitit_Payment_Method_Adapter" sortOrder="10" type="Splitit\PaymentGateway\Plugin\Magento\Payment\Model\Method\Adapter" />
+    </type>
 </config>
