@@ -18,11 +18,96 @@ define([
       transactionResult: "",
       additional_data: {},
       FF: null,
+      consumerData: {fullName:'',email:'',phoneNumber:''},
+      billingAddress: {},
+      imports: {
+        customerEmail: 'checkout.steps.shipping-step.shippingAddress.customer-email:email'
+      }
     },
 
+    initialize: function() {
+      this._super();
+      var self = this;
+      this.observe(['customerEmail']);
+      this.customerEmail.subscribe(function (email) {
+        if(self.consumerData.email != email) {
+          self.consumerData.email = email;
+          if(self.consumerData.fullName) {
+            window.SplititFF.updateDetails({consumerData: self.consumerData});
+          }
+        }
+      });
+      quote.billingAddress.subscribe(
+          function(newAddress) {
+            if (newAddress && window.SplititFF != undefined) {
+              console.log('billing address changed');
+              var billingAddress = self.prepareBillingAddress(newAddress);
+              var email = '';
+              if (quote.guestEmail) {
+                email = quote.guestEmail;
+              } else {
+                email = window.checkoutConfig.customerData.email;
+              }
+              self.consumerData = {
+                fullName: newAddress.firstname + ' ' +  newAddress.lastname,
+                email: email,
+                phoneNumber: newAddress.telephone
+              };
+              if(self.billingAddress.addressLine != billingAddress.addressLine ||
+                  self.billingAddress.addressLine2 != billingAddress.addressLine2 ||
+                  self.billingAddress.city != billingAddress.city ||
+                  self.billingAddress.state != billingAddress.state ||
+                  self.billingAddress.country != billingAddress.country ||
+                  self.billingAddress.zip != billingAddress.zip) {
+                window.SplititFF.updateDetails({billingAddress:billingAddress,consumerData:self.consumerData});
+                self.billingAddress = billingAddress;
+              }
+            }
+          }
+      );
+      return this;
+    },
     initObservable: function () {
       this._super().observe(["transactionResult"]);
       return this;
+    },
+
+    prepareBillingAddress: function(addressData) {
+      var addressLine = '';
+      var addressLine2 = '';
+      if (addressData.street != undefined) {
+        addressLine = addressData.street[0];
+        if(addressData.street.length > 1 && addressData.street[1]) {
+          addressLine2 = addressData.street[1];
+        }
+      }
+      var billingAddress = {
+        addressLine: addressLine,
+        addressLine2: addressLine2,
+        city: null,
+        state: null,
+        country: null,
+        zip: null
+      };
+
+      if(addressData.city != undefined) {
+        billingAddress.city = addressData.city
+      }
+
+      if(addressData.region != undefined) {
+        billingAddress.state = addressData.region
+      }
+
+      if(addressData.countryId != undefined) {
+        billingAddress.country = addressData.countryId
+      }
+
+      if(addressData.postcode != undefined) {
+        billingAddress.zip = addressData.postcode
+      }
+
+      return billingAddress;
+
     },
 
     getCode: function () {
@@ -85,17 +170,22 @@ define([
           this.show();
         }
         var billingAddress = quote.billingAddress();
+        thisObj.prepareBillingAddress(billingAddress);
         var email = '';
         if (quote.guestEmail) {
           email = quote.guestEmail;
         } else {
           email = window.checkoutConfig.customerData.email;
         }
-        var addressLine2 = '';
-        if (billingAddress.street[1]) {
-          addressLine2 = billingAddress.street[1];
-        } else {
-          addressLine2 = '';
+        thisObj.consumerData = {
+          email: email,
+          phoneNumber: billingAddress.telephone
+        };
+        if(billingAddress.firstname) {
+          thisObj.consumerData.fullName = billingAddress.firstname;
+        }
+        if(billingAddress.lastname) {
+          thisObj.consumerData.fullName += ' ' +  billingAddress.lastname;
         }
         var splititFlexFields = this;
         $.ajax({
@@ -105,17 +195,17 @@ define([
             amount: quote.getTotals()().base_grand_total.toFixed(2),
             numInstallments: '', //passing numInstallments blank as Splitit will process this.
             billingAddress: {
-              AddressLine: billingAddress.street[0],
-              AddressLine2: addressLine2,
-              City: billingAddress.city,
-              State: billingAddress.region,
-              Country: billingAddress.countryId,
-              Zip: billingAddress.postcode
+              AddressLine: thisObj.billingAddress.addressLine,
+              AddressLine2: thisObj.billingAddress.addressLine2,
+              City: thisObj.billingAddress.city,
+              State: thisObj.billingAddress.state,
+              Country: thisObj.billingAddress.country,
+              Zip: thisObj.billingAddress.zip
             },
             consumerModel: {
-              FullName: billingAddress.firstname + ' ' + billingAddress.lastname,
-              Email: email,
-              PhoneNumber: billingAddress.telephone
+              FullName: thisObj.consumerData.fullName,
+              Email: thisObj.consumerData.email,
+              PhoneNumber: thisObj.consumerData.phoneNumber
             }
           },
           success: function (data) {

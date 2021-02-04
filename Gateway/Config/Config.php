@@ -22,6 +22,7 @@ class Config
     const CONFIG_MIN_AMOUNT = 'payment/splitit_payment/min_order_amount';
     const CONFIG_UPSTREAM_CONTENT = 'payment/splitit_payment/upstream_messaging_enabled';
     const CONFIG_INSTALLMENT_RANGE = 'payment/splitit_payment/ranges';
+    const CONFIG_DEFAULT_INSTALLMENTS_AMOUNT = 'payment/splitit_payment/upstream_default_installments';
     const CONFIG_PAYMENT_ACTION = 'payment/splitit_payment/payment_action';
     const CONFIG_3D_SECURE = 'payment/splitit_payment/splitit_3dsecure';
 
@@ -136,6 +137,12 @@ class Config
         return $this->getConfig(self::CONFIG_UPSTREAM_CONTENT);
     }
 
+    protected function _getInstallmentsArray($line)
+    {
+        $installments = array_filter(explode(',',$line),'trim');
+        sort($installments, SORT_ASC);
+        return $installments;
+    }
     /**
      * Get installment range from admin config.
      *
@@ -160,7 +167,7 @@ class Config
                 $instRangeArray[] = [
                     $row['priceFrom'],
                     $row['priceTo'],
-                    $row['installment']
+                    $this->_getInstallmentsArray($row['installment'])
                 ];
             }
 
@@ -170,6 +177,12 @@ class Config
         }
 
         return null;
+    }
+
+    public function getUpstreamDefaultInstallmentsAmount()
+    {
+        $val = $this->getConfig(self::CONFIG_DEFAULT_INSTALLMENTS_AMOUNT);
+        return $val ? $val : null;
     }
 
     /**

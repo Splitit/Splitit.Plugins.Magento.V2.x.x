@@ -4,6 +4,7 @@ namespace Splitit\PaymentGateway\Controller\Flexfields;
 
 use Magento\Checkout\Model\Session;
 use Magento\Framework\App\Action\Context;
+use Magento\Framework\DataObject;
 use Magento\Framework\Json\Helper\Data;
 use Psr\Log\LoggerInterface;
 use Magento\Framework\Exception\LocalizedException;
@@ -101,8 +102,8 @@ class Index extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
-        $postData = $this->_request->getParams();
-
+        $request = $this->getRequest();
+        $amount = $request->getParam('amount',$this->checkoutSession->getQuote()->getBaseGrandTotal());
         $touchPointData = $this->touchPointHelper->getTouchPointData();
 
         try {
@@ -124,21 +125,18 @@ class Index extends \Magento\Framework\App\Action\Action
             }
 
             $installmentArray = $this->splititConfig->getInstallmentRange();
-            $installmentRange = "2,3,4,5,6,12"; //setting default value
+            $installmentRange = [];
             if (!empty($installmentArray)) {
                 foreach ($installmentArray as $installmentArrayItem) {
-                    if ($postData['amount'] >= $installmentArrayItem[0] && $postData['amount'] <= $installmentArrayItem[1]) {
-                        $installmentNum = $installmentArrayItem[2];
-                        $instArrray = [];
-                        for ($i=2; $i<=$installmentNum; $i++)
-                        {
-                            $instArrray[] = $i;
+                    if ($amount >= $installmentArrayItem[0] && $amount <= $installmentArrayItem[1]) {
+                        foreach ($installmentArrayItem[2] as $installmentNum) {
+                            $installmentRange[] = $installmentNum;
                         }
-                        $installmentRange = implode(',', $instArrray);
                     }
                 }
             }
 
+            $installmentRange = implode(',', array_unique($installmentRange));
             $currencyCode = $this->upstreamBlock->getCurrentCurrencyCode();
             $cultureName = strtolower(str_replace('_', '-', $this->upstreamBlock->getCultureName()));
             if ($cultureName == null) {
@@ -149,8 +147,8 @@ class Index extends \Magento\Framework\App\Action\Action
 
             $planData = new PlanData();
 
-            $planData->setNumberOfInstallments($postData['numInstallments']);
-            $planData->setAmount(new MoneyWithCurrencyCode(["value" => $postData['amount'], "currency_code" => $currencyCode]));
+            $planData->setNumberOfInstallments($request->getParam('numInstallments'));
+            $planData->setAmount(new MoneyWithCurrencyCode(["value" => $amount, "currency_code" => $currencyCode]));
             $planData->setAutoCapture(false);
             $planData->setRefOrderNumber($this->checkoutSession->getQuoteId());
             $is3dSecureEnabled = $this->splititConfig->get3DSecure();
@@ -163,31 +161,39 @@ class Index extends \Magento\Framework\App\Action\Action
             $paymentWizard = new PaymentWizardData();
             $successAsyncUrl = $this->_url->getUrl('splititpaymentgateway/payment/successasync');
             $paymentWizard->setSuccessAsyncUrl($successAsyncUrl);
-            $paymentWizard->setRequestedNumberOfInstallments($installmentRange);
+            if( ! empty($installmentRange)) {
+                $paymentWizard->setRequestedNumberOfInstallments($installmentRange);
+            }
+
             $paymentWizard->setIsOpenedInIframe(true);
 
+            $address = new DataObject((array)$request->getParam('billingAddress'));
             $billingAddress = new AddressData(array(
-                "address_line" => $postData['billingAddress']['AddressLine'],
-                "address_line2" => $postData['billingAddress']['AddressLine2'],
-                "city" => $postData['billingAddress']['City'],
-                "state" => $postData['billingAddress']['State'],
-                "country" => $postData['billingAddress']['Country'],
-                "zip" => $postData['billingAddress']['Zip']
+                "address_line" => $address->getData('AddressLine'),
+                "address_line2" => $address->getData('AddressLine2'),
+                "city" => $address->getData('City'),
+                "state" => $address->getData('State'),
+                "country" => $address->getData('Country'),
+                "zip" => $address->getData('Zip')
             ));
 
+            $consumer = $request->getParam('consumerModel');
             $consumerData = new ConsumerData(array(
-                "full_name" => $postData['consumerModel']['FullName'],
-                "email" => $postData['consumerModel']['Email'],
-                "phone_number" => $postData['consumerModel']['PhoneNumber'],
+                "full_name" => isset($consumer['FullName']) ? $consumer['FullName'] : '',
+                "email" => isset($consumer['Email']) ? $consumer['Email'] : '',
+                "phone_number" => isset($consumer['PhoneNumber']) ? $consumer['PhoneNumber'] : '',
                 "culture_name" => $cultureName,
                 "is_locked" => false,
                 "is_data_restricted" => false,
             ));
 
             $initiateReq->setPlanData($planData)
-                ->setBillingAddress($billingAddress)
-                ->setConsumerData($consumerData)
                 ->setPaymentWizardData($paymentWizard);
+            if($consumerData->getFullName() && $consumerData->getEmail()) {
+                $initiateReq
+                    ->setConsumerData($consumerData)
+                    ->setBillingAddress($billingAddress);
+            }
 
             $initResp = $installmentPlanApi->installmentPlanInitiate($initiateReq);
 
@@ -237,7 +243,7 @@ class Index extends \Magento\Framework\App\Action\Action
         $log = $this->logResource->getByQuote($quoteId);
         if (!$log) {
             $log = $this->logModelFactory->create();
-            $log->setQuoteId($this->checkoutSession->getQuoteId());
+            $log->setQuoteId($quoteId);
         }
         $log->setInstallmentPlanNumber($ipn);
         try {

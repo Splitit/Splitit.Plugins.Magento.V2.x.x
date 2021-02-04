@@ -83,14 +83,21 @@ class UpstreamContentProduct extends UpstreamMessaging
      */
     public function getInstallmentNumber()
     {
-        $installmentArray =  $this->getInstallmentRangeValues();
         $productTotal =  $this->getCurrentProductPrice();
-        $installmentNum = 3; //setting default value
-        if (is_array($installmentArray)) {
-            foreach ($installmentArray as $installmentArrayItem) {
-                if ($productTotal >= $installmentArrayItem[0] && $productTotal <= $installmentArrayItem[1]) {
-                    $installmentNum = $installmentArrayItem[2];
-                    break;
+        $installmentNum = $this->splititConfig->getUpstreamDefaultInstallmentsAmount();
+        if( ! $installmentNum) {
+            $installmentArray =  $this->getInstallmentRangeValues();
+            if (is_array($installmentArray)) {
+                foreach ($installmentArray as $installmentArrayItem) {
+                    if ($productTotal >= $installmentArrayItem[0] && $productTotal <= $installmentArrayItem[1]) {
+                        $size = count($installmentArrayItem[2]);
+                        if ($size % 2 == 0) {
+                            $installmentNum = $installmentArrayItem[2][($size / 2) - 1];
+                        } else {
+                            $installmentNum = $installmentArrayItem[2][ceil($size / 2) - 1];
+                        }
+                        break;
+                    }
                 }
             }
         }

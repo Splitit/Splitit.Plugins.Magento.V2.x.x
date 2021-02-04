@@ -61,10 +61,8 @@ class Updatequote extends \Magento\Framework\App\Action\Action
      */
     public function execute()
     {
-        $postData = $this->_request->getParams();
-        $quoteId = $postData['quoteId'];
         try {
-            $quote = $this->quoteRepository->get($quoteId);
+            $quote = $this->quoteRepository->get($this->_request->getParam('quoteId'));
             $totalAmount = bcdiv($quote->getGrandTotal(), 1, 2);
             return $this->jsonResponse($totalAmount);
         } catch (\Magento\Framework\Exception\LocalizedException $e) {

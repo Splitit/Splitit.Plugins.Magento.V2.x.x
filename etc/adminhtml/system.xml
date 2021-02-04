@@ -58,10 +58,24 @@
                     <source_model>Splitit\PaymentGateway\Model\Adminhtml\Source\UpstreamMessagingEnabled</source_model>
                     <can_be_empty>1</can_be_empty>
                 </field>
+                <field id="upstream_default_installments" translate="label" type="text" sortOrder="175" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Upstream Message Default Installments Number</label>
+                    <validate>validate-number</validate>
+                </field>
                 <field id="ranges" translate="label" sortOrder="180" showInDefault="1" showInWebsite="1">
                 <label>Installment Configuration</label>
                     <frontend_model>Splitit\PaymentGateway\Model\Adminhtml\Form\Field\Ranges</frontend_model>
                     <backend_model>Magento\Config\Model\Config\Backend\Serialized\ArraySerialized</backend_model>
+                    <comment><![CDATA[You can define several installments per each amount range. Do not overlap amount ranges. See examples:
+                        <br>
+                        <b>Bad configuration:</b><br>
+                        100-500 | 2,3,4<br>
+                        300-700 | 4,7,8<br><br>
+                        <b>Good configuration:</b><br>
+                        100-500 | 2,3,4<br>
+                        501-700 | 5,6,7<br><br>
+                    ]]></comment>
+
                 </field>
             </group>
         </section>

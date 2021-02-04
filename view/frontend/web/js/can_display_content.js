@@ -12,6 +12,9 @@ define(
       if (subtotal > config.threshold || config.productprice > config.threshold) {
         $('.splitit-product-block').show();
       }
+        window.splitit_product_price = config.productprice;
+        window.splitit_installments = config.installmentsCount;
+        window.splitit_currency = config.currency;
       $(document).on('ready', ".product-info-price", function () {
         var priceHtml = $('.product-info-price').find('.price')[0]['firstChild']['data'];
         var newPrice = priceHtml.replace(/[^0-9.]/g, ""); //removes all special chatacters (currency, comma) except for . and numbers

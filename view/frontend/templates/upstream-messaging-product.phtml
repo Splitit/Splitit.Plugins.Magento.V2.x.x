@@ -18,7 +18,9 @@
         "*": {
             "Splitit_PaymentGateway/js/can_display_content": {
             "threshold":<?php echo $block->getThresholdAmount(); ?>,
-            "productprice":<?php echo $block->getCurrentProductPrice(); ?>
+            "productprice":<?php echo $block->getCurrentProductPrice();?>,
+            "currency": "<?php echo $block->getCurrentCurrencySymbol()?>",
+            "installmentsCount": <?php echo $block->getInstallmentNumber()?>
             }
         }
     }
