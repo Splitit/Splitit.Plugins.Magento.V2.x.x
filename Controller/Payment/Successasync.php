@@ -13,6 +13,7 @@ use Magento\Quote\Model\QuoteFactory;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Model\Order\Email\Sender\OrderSender;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\OrderFactory;
 use Splitit\PaymentGateway\Gateway\Config\Config;
 use Splitit\PaymentGateway\Gateway\Login\LoginAuthentication;
 use Splitit\PaymentGateway\Helper\TouchpointHelper;
@@ -23,6 +24,7 @@ use SplititSdkClient\Api\InstallmentPlanApi;
 use SplititSdkClient\Configuration;
 use SplititSdkClient\Model\CancelInstallmentPlanRequest;
 use SplititSdkClient\Model\GetInstallmentsPlanSearchCriteriaRequest;
+use SplititSdkClient\Model\InstallmentPlanStatus;
 use SplititSdkClient\Model\PlanData;
 use SplititSdkClient\Model\RefundUnderCancelation;
 use SplititSdkClient\Model\UpdateInstallmentPlanRequest;
@@ -95,6 +97,9 @@ class Successasync extends Action
      */
     private $logResource;
 
+    /** @var OrderFactory  */
+    private $orderFactory;
+
     public function __construct(
         Context $context,
         ScopeConfigInterface $scopeConfig,
@@ -110,7 +115,8 @@ class Successasync extends Action
         TouchpointHelper $touchPointHelper,
         LogModelFactory $logModelFactory,
         LogResource $logResource,
-        FormKey $formKey
+        FormKey $formKey,
+        OrderFactory $orderFactory
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->resultJsonFactory = $resultJsonFactory;
@@ -133,6 +139,7 @@ class Successasync extends Action
                 $request->setParam('form_key', $formKey->getFormKey());
             }
         }
+        $this->orderFactory = $orderFactory;
     }
 
     /**
@@ -142,8 +149,10 @@ class Successasync extends Action
      */
     public function execute()
     {
-        $params = $this->getRequest()->getParams();
-        $installmentPlanNumber = $params['InstallmentPlanNumber'];
+        $installmentPlanNumber =  $this->getRequest()->getParam('InstallmentPlanNumber');
+        if( ! $installmentPlanNumber) {
+            return;
+        }
         $log = $this->logResource->getByIPN($installmentPlanNumber);
         if ($log && $log->getIncrementId()) {
             return;
@@ -176,11 +185,17 @@ class Successasync extends Action
         $grandTotal = number_format((float)$quote->getGrandTotal(), 2, '.', '');
         $amount = number_format((float)$amount, 2, '.', '');
         $this->logger->debug([2]);
-        if ($grandTotal == $amount && ($status == "PendingMerchantShipmentNotice" || $status == "InProgress")) {
 
-            $orderId = $this->orderPlace->execute($quote, array());
+        if ($grandTotal == $amount &&
+            ($status == InstallmentPlanStatus::PENDING_MERCHANT_SHIPMENT_NOTICE || $status == InstallmentPlanStatus::IN_PROGRESS)
+        ) {
 
-            $orderObj = $this->order->load($orderId);
+            if( ! $quote->getIsActive()) {
+                $quote->setIsActive(1);
+                $this->quoteRepository->save($quote);
+            }
+
+            $orderObj = $this->getOrderObject($quote);
 
             $payment = $orderObj->getPayment();
             $paymentAction = $this->splititConfig->getPaymentAction();
@@ -196,8 +211,10 @@ class Successasync extends Action
             $payment->registerAuthorizationNotification($grandTotal);
 
             $orderObj->addStatusToHistory(
-                $orderObj->getStatus(), 'Payment InstallmentPlan was created with number ID: '
-                . $installmentPlanNumber, false
+                $orderObj->getStatus(),
+                'Payment InstallmentPlan was created with number ID: '
+                . $installmentPlanNumber,
+                false
             );
             if ($paymentAction == "authorize_capture") {
 
@@ -205,7 +222,9 @@ class Successasync extends Action
                 $payment->setIsTransactionClosed(1);
                 $payment->registerCaptureNotification($grandTotal);
                 $orderObj->addStatusToHistory(
-                    false, 'Payment NotifyOrderShipped was sent with number ID: ' . $installmentPlanNumber, false
+                    false,
+                    'Payment NotifyOrderShipped was sent with number ID: ' . $installmentPlanNumber,
+                    false
                 );
             }
 
@@ -214,6 +233,7 @@ class Successasync extends Action
             $updateRequest = new UpdateInstallmentPlanRequest();
             $planData = new PlanData();
             $planData->setRefOrderNumber($orderObj->getIncrementId());
+            $updateRequest->setInstallmentPlanNumber($installmentPlanNumber);
             $updateRequest->setPlanData($planData);
 
             try {
@@ -225,6 +245,16 @@ class Successasync extends Action
         } else {
             $this->cancelPlan($installmentPlanNumber, $apiInstance);
         }
+    }
+
+    private function getOrderObject($quote)
+    {
+        $existingOrder = $this->orderFactory->create();
+        $existingOrder->loadByIncrementId($quote->getReservedOrderId());
+
+        return $existingOrder->getId()
+            ? $existingOrder
+            : $this->order->load($this->orderPlace->execute($quote, []));
     }
 
     /**
@@ -271,7 +301,7 @@ class Successasync extends Action
         try {
             $this->logResource->save($log);
         } catch (\Exception $e) {
-            // do nothing;
+            $this->logger->debug([$e->getMessage()]);
         }
     }
 }

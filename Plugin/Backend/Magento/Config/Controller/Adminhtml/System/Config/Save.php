@@ -15,21 +15,31 @@ class Save extends \Magento\Config\Controller\Adminhtml\System\Config\Save
         \Magento\Config\Controller\Adminhtml\System\Config\Save $subject,
         \Closure $proceed
     ) {
+
         $section = $subject->getRequest()->getParam('section');
         $website = $subject->getRequest()->getParam('website');
         $store = $subject->getRequest()->getParam('store');
 
-        $configData = [
-            'section' => $section,
-            'website' => $website,
-            'store' => $store,
-            'groups' => $subject->_getGroupsForSave()
-        ];
-        
         $flag = 0;
         if ($section == 'payment') {
-            $ranges = $configData['groups']['splitit_payment']['fields']['ranges']['value'];
-            if (isset($ranges)) {
+
+            if(isset($_POST['groups']['splitit_payment']['fields']['osc']['value'])) {
+                $_POST['groups']['splitit_payment']['fields']['osc']['value'] = '1';
+                $this->getRequest()->setPostValue($_POST);
+            } else {
+                $_POST['groups']['splitit_payment']['fields']['osc']['value']  = '0';
+                $this->getRequest()->setPostValue($_POST);
+            }
+
+            $configData = [
+                'section' => $section,
+                'website' => $website,
+                'store' => $store,
+                'groups' => $subject->_getGroupsForSave()
+            ];
+
+            if (isset($configData['groups']['splitit_payment']['fields']['ranges']['value'])) {
+                $ranges = $configData['groups']['splitit_payment']['fields']['ranges']['value'];
                 $arr = array();
                 foreach ($ranges as $range) {
                     if ($range == "") {

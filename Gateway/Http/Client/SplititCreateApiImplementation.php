@@ -15,6 +15,7 @@ use Splitit\PaymentGateway\Gateway\Config\Config;
 use SplititSdkClient\Model\UpdateInstallmentPlanRequest;
 use Psr\Log\LoggerInterface;
 use Splitit\PaymentGateway\Helper\TouchpointHelper;
+use Magento\Framework\App\RequestInterface;
 
 class SplititCreateApiImplementation implements ClientInterface
 {
@@ -59,6 +60,7 @@ class SplititCreateApiImplementation implements ClientInterface
      */
     private $logResource;
 
+    public $request;
     /**
      * @param Logger $logger
      * @param LoginAuthentication $loginAuth
@@ -75,7 +77,8 @@ class SplititCreateApiImplementation implements ClientInterface
         LoggerInterface $psrLogger,
         TouchpointHelper $touchPointHelper,
         LogModelFactory $logModelFactory,
-        LogResource $logResource
+        LogResource $logResource,
+        RequestInterface $request
     ) {
         $this->logger = $logger;
         $this->loginAuth = $loginAuth;
@@ -84,8 +87,12 @@ class SplititCreateApiImplementation implements ClientInterface
         $this->touchPointHelper = $touchPointHelper;
         $this->logModelFactory = $logModelFactory;
         $this->logResource = $logResource;
+        $this->request = $request;
     }
-
+    protected function isAsyncFlow()
+    {
+        return $this->request->getParam('InstallmentPlanNumber') && $this->request->getActionName('syccessasync');
+    }
     /**
      * Places request to gateway. Returns result as ENV array
      *
@@ -96,6 +103,13 @@ class SplititCreateApiImplementation implements ClientInterface
     public function placeRequest(TransferInterface $transferObject)
     {
         $data = $transferObject->getBody();
+        if(( ! isset($data['InstallmentPlanNumber']) || ! $data['InstallmentPlanNumber']) && $this->isAsyncFlow()) {
+            //no need to make extra API calls here if is async flow
+            return [
+                'RESULT_CODE' => self::SUCCESS,
+                'TXN_ID' => $this->request->getParam('InstallmentPlanNumber')
+            ];
+        }
         $isSuccess = $data['Succeeded'];
 
         $touchPointData = $this->touchPointHelper->getTouchPointData();
@@ -127,9 +141,8 @@ class SplititCreateApiImplementation implements ClientInterface
         try {
             $result = $apiInstance->installmentPlanUpdate($updateRequest);
             $this->updateLog($orderRefNumber, $data['InstallmentPlanNumber']);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             throw new \Exception(__('Error in adding order reference number to the installment plan. Please try again.'));
-            $this->psrLogger($e);
         }
 
         if ($isSuccess) {
@@ -139,7 +152,7 @@ class SplititCreateApiImplementation implements ClientInterface
         }
         $response = [
             'RESULT_CODE' => $resultCode,
-            'TXN_ID' => $data['InstallmentPlanNumber']
+            'TXN_ID' => $data['InstallmentPlanNumber'] ?? ''
         ];
 
         $this->logger->debug(
@@ -155,13 +168,13 @@ class SplititCreateApiImplementation implements ClientInterface
     public function updateLog($incrementId, $ipn)
     {
         $log = $this->logResource->getByIPN($ipn);
-        if ($log->getId()) {
+        if ($log && $log->getId()) {
             $log->setIncrementId($incrementId);
             $log->setIsSuccess(true);
             try {
                 $this->logResource->save($log);
             } catch (\Exception $e) {
-                // do nothing;
+                $this->logger->debug($e->getTrace());
             }
         } else {
             $this->logger->debug(['There is no log record for IPN ' . $ipn]);

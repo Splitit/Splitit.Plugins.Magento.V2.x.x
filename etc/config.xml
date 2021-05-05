@@ -6,6 +6,7 @@
             <splitit_payment>
                 <debug>1</debug>
                 <active>0</active>
+                <osc>0</osc>
                 <model>SplititPaymentGatewayFacade</model>
                 <merchant_gateway_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
                 <splitit_password backend_model="Magento\Config\Model\Config\Backend\Encrypted" /> 

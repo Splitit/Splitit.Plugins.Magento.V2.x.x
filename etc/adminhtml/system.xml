@@ -52,6 +52,12 @@
                     <label>Sort Order</label>
                     <frontend_class>validate-number</frontend_class>
                 </field>
+                <field id="osc" translate="label" type="Splitit\PaymentGateway\Model\Adminhtml\Form\Field\Checkbox" sortOrder="160" showInDefault="1" showInWebsite="1"
+                       showInStore="0">
+                    <label>One Step Checkout</label>
+                    <tooltip>Check this box if you are using a One Step Checkout</tooltip>
+                    <backend_model>Splitit\PaymentGateway\Model\Adminhtml\Backend\Checkbox</backend_model>
+                </field>
                 <field id="upstream_messaging_enabled" showInDefault="1" showInWebsite="1" sortOrder="170" translate="label" type="multiselect">
                     <label>Upstream Messaging Enabled</label>
                     <comment>Please select areas to display splitit upstream messaging content.</comment>

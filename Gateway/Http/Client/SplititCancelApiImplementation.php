@@ -91,6 +91,7 @@ class SplititCancelApiImplementation implements ClientInterface
         try {
             $cancelResponse = $apiInstance->installmentPlanCancel($cancelRequest);
         } catch (\Exception $e) {
+            $this->logger->debug($e->getTrace());
             throw new \Exception(__('Error in cancelling the installment plan.'));
         }
 

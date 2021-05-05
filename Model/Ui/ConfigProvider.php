@@ -35,7 +35,8 @@ class ConfigProvider implements ConfigProviderInterface
         return [
             'payment' => [
                 self::CODE => [
-                    'threshold' => $this->config->getSplititMinOrderAmount()
+                    'threshold' => $this->config->getSplititMinOrderAmount(),
+                    'osc' => $this->config->getOsc()
                 ]
             ]
         ];

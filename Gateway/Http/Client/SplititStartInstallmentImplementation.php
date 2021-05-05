@@ -15,6 +15,8 @@ use SplititSdkClient\Model\UpdateInstallmentPlanRequest;
 use Psr\Log\LoggerInterface;
 use Magento\Payment\Model\Method\AbstractMethod;
 use Splitit\PaymentGateway\Helper\TouchpointHelper;
+use Splitit\PaymentGateway\Model\ResourceModel\Log as LogResource;
+use Magento\Framework\App\RequestInterface;
 
 class SplititStartInstallmentImplementation implements ClientInterface
 {
@@ -30,6 +32,8 @@ class SplititStartInstallmentImplementation implements ClientInterface
      * @var LoginAuthentication
      */
     protected $loginAuth;
+
+    public $request;
 
     /**
      * @var Config
@@ -58,13 +62,22 @@ class SplititStartInstallmentImplementation implements ClientInterface
         LoginAuthentication $loginAuth,
         Config $splititConfig,
         LoggerInterface $psrLogger,
-        TouchpointHelper $touchPointHelper
+        TouchpointHelper $touchPointHelper,
+        LogResource $logResource,
+        RequestInterface $request
     ) {
         $this->logger = $logger;
         $this->loginAuth = $loginAuth;
         $this->splititConfig = $splititConfig;
         $this->psrLogger = $psrLogger;
         $this->touchPointHelper = $touchPointHelper;
+        $this->logResource = $logResource;
+        $this->request = $request;
+    }
+
+    protected function isAsyncFlow()
+    {
+        return $this->request->getParam('InstallmentPlanNumber') && $this->request->getActionName('syccessasync');
     }
 
     /**
@@ -80,6 +93,13 @@ class SplititStartInstallmentImplementation implements ClientInterface
         $touchPointData = $this->touchPointHelper->getTouchPointData();
         $session_id = $this->loginAuth->getLoginSession();
         $envSelected = $this->splititConfig->getEnvironment();
+        if(( ! isset($data['TXN_ID']) || ! $data['TXN_ID']) && $this->isAsyncFlow()) {
+            //no need to make extra API calls here if is async flow
+            return [
+                'RESULT_CODE' => self::SUCCESS,
+                'TXN_ID' => $this->request->getParam('InstallmentPlanNumber')
+            ];
+        }
         if ($envSelected == "sandbox") {
             Configuration::sandbox()->setTouchPoint($touchPointData);
             $apiInstance = new InstallmentPlanApi(
@@ -100,21 +120,24 @@ class SplititStartInstallmentImplementation implements ClientInterface
 
             $planData = new PlanData();
             $planData->setRefOrderNumber($orderRefNumber);
-
             $updateRequest = new UpdateInstallmentPlanRequest();
             $updateRequest->setInstallmentPlanNumber($data['TXN_ID']);
             $updateRequest->setPlanData($planData);
 
             try {
                 $result = $apiInstance->installmentPlanUpdate($updateRequest);
-            } catch (Exception $e) {
+                if(isset($data['TXN_ID']) && $data['TXN_ID']) {
+                    $this->updateLog($orderRefNumber, $data['TXN_ID']);
+                }
+            } catch (\Exception $e) {
                 throw new \Exception(__('Error in adding order reference number to the installment plan. Please try again.'));
-                $this->psrLogger($e);
             }
         }
 
-        $startInstallmentsRequest = new StartInstallmentsRequest(); 
-        $startInstallmentsRequest->setInstallmentPlanNumber($data['TXN_ID']);
+        $startInstallmentsRequest = new StartInstallmentsRequest();
+        if(isset($data['TXN_ID']) && $data['TXN_ID']) {
+            $startInstallmentsRequest->setInstallmentPlanNumber($data['TXN_ID']);
+        }
 
         try {
             $startInstallmentsResponse = $apiInstance->installmentPlanStartInstallments($startInstallmentsRequest);
@@ -131,7 +154,7 @@ class SplititStartInstallmentImplementation implements ClientInterface
         }
         $response = [
             'RESULT_CODE' => $resultCode,
-            'TXN_ID' => $data['TXN_ID']
+            'TXN_ID' => $data['TXN_ID'] ?? ''
         ];
 
         $this->logger->debug(
@@ -142,5 +165,21 @@ class SplititStartInstallmentImplementation implements ClientInterface
         );
 
         return $response;
+    }
+
+    public function updateLog($incrementId, $ipn)
+    {
+        $log = $this->logResource->getByIPN($ipn);
+        if ($log && $log->getId()) {
+            $log->setIncrementId($incrementId);
+            $log->setIsSuccess(true);
+            try {
+                $this->logResource->save($log);
+            } catch (\Exception $e) {
+                $this->logger->debug($e->getTrace());
+            }
+        } else {
+            $this->logger->debug(['There is no log record for IPN ' . $ipn]);
+        }
     }
 }

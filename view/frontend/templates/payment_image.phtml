@@ -1,5 +1,8 @@
 
-<?php $splititlogo = $block->getLayout()->createBlock("Magento\Framework\View\Element\Template")->setTemplate("Splitit_PaymentGateway::splitit_logo.phtml")->toHtml(); ?>
+<?php
+$splititlogo = $block->getLayout()->createBlock("Splitit\PaymentGateway\Block\UpstreamMessaging\UpstreamLogo")
+    ->setTemplate("Splitit_PaymentGateway::splitit_logo.phtml")->toHtml();
+?>
 
 <script type="text/javascript">
     var splitit_logo = <?= json_encode($splititlogo); ?>

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file
 -
+### 2.6.0
+* One Step Checkout compatibility fixes
+* Authorize+Capture payment action fix
+* Async logic improvements
+* Debug logging improvements
+* Minor bugfixes and improvements
+
+### 2.5.0
+* Removed var_dump from code. Sorry
+* Minor hotfix
+
 ### 2.4.0
 * One Step Checkout compatibility
 * Installment settings improvements

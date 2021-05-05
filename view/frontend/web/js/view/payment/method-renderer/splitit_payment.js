@@ -32,16 +32,13 @@ define([
       this.customerEmail.subscribe(function (email) {
         if(self.consumerData.email != email) {
           self.consumerData.email = email;
-          if(self.consumerData.fullName) {
-            window.SplititFF.updateDetails({consumerData: self.consumerData});
-          }
         }
       });
       quote.billingAddress.subscribe(
           function(newAddress) {
             if (newAddress && window.SplititFF != undefined) {
               console.log('billing address changed');
-              var billingAddress = self.prepareBillingAddress(newAddress);
+              var billingAddress = self.prepareCustomerAddress(newAddress);
               var email = '';
               if (quote.guestEmail) {
                 email = quote.guestEmail;
@@ -53,35 +50,78 @@ define([
                 email: email,
                 phoneNumber: newAddress.telephone
               };
-              if(self.billingAddress.addressLine != billingAddress.addressLine ||
-                  self.billingAddress.addressLine2 != billingAddress.addressLine2 ||
-                  self.billingAddress.city != billingAddress.city ||
-                  self.billingAddress.state != billingAddress.state ||
-                  self.billingAddress.country != billingAddress.country ||
-                  self.billingAddress.zip != billingAddress.zip) {
-                window.SplititFF.updateDetails({billingAddress:billingAddress,consumerData:self.consumerData});
-                self.billingAddress = billingAddress;
-              }
+
             }
           }
       );
+      quote.totals.subscribe(function() {
+        self.updateCalculations(false);
+      });
+      this.lastAmount = parseFloat(quote.getTotals()().base_grand_total);
       return this;
+    },
+    updateAddress : function(billingAddress) {
+      if(this.billingAddress.addressLine != billingAddress.addressLine ||
+          this.billingAddress.addressLine2 != billingAddress.addressLine2 ||
+          this.billingAddress.city != billingAddress.city ||
+          this.billingAddress.state != billingAddress.state ||
+          this.billingAddress.country != billingAddress.country ||
+          this.billingAddress.zip != billingAddress.zip) {
+        this.billingAddress = billingAddress;
+      }
     },
     initObservable: function () {
       this._super().observe(["transactionResult"]);
       return this;
     },
+    updateCalculations: function (forceUpdate) {
+      if (!this.isActive() && !forceUpdate) {
+        return;
+      }
+      var newAmount = quote.getTotals()().base_grand_total;
+      if (this.lastAmount === newAmount) {
+        return;
+      }
+      this.lastAmount = newAmount;
 
-    prepareBillingAddress: function(addressData) {
+      var data = {
+        amount: quote.getTotals()().base_grand_total.toFixed(2),
+        numInstallments: ''
+      };
+
+      $.ajax({
+        url: '/splititpaymentgateway/flexfields/totals',
+        method: 'post',
+        data: data,
+        success: function (response) {
+          if (typeof response == 'undefined' || typeof response.publicToken == 'undefined') {
+            if (typeof reportExternalError != 'undefined') {
+              reportExternalError('Public Token is not defined', response);
+            } else {
+              console.error('Public Token is not defined');
+              console.error(response);
+            }
+          }
+          if (typeof window.SplititFF === 'undefined') {
+            return;
+          }
+          window.SplititFF.setPublicToken(response.publicToken);
+          window.SplititFF.synchronizePlan();
+        },
+        error: function () {
+        }
+      });
+    },
+    prepareCustomerAddress: function(billingAddress) {
       var addressLine = '';
       var addressLine2 = '';
-      if (addressData.street != undefined) {
-        addressLine = addressData.street[0];
-        if(addressData.street.length > 1 && addressData.street[1]) {
-          addressLine2 = addressData.street[1];
+      if (typeof billingAddress.street != 'undefined') {
+        addressLine = billingAddress.street[0];
+        if(billingAddress.street.length > 1 && billingAddress.street[1]) {
+          addressLine2 = billingAddress.street[1];
         }
       }
-      var billingAddress = {
+      var address = {
         addressLine: addressLine,
         addressLine2: addressLine2,
         city: null,
@@ -90,28 +130,28 @@ define([
         zip: null
       };
 
-      if(addressData.city != undefined) {
-        billingAddress.city = addressData.city
+      if(typeof billingAddress.city != 'undefined') {
+        address.city = billingAddress.city;
       }
 
-      if(addressData.region != undefined) {
-        billingAddress.state = addressData.region
+      if(typeof billingAddress.region != 'undefined') {
+        address.state = billingAddress.region;
       }
 
-      if(addressData.countryId != undefined) {
-        billingAddress.country = addressData.countryId
+      if(typeof billingAddress.countryId != 'undefined') {
+        address.country = billingAddress.countryId;
       }
 
-      if(addressData.postcode != undefined) {
-        billingAddress.zip = addressData.postcode
+      if(typeof billingAddress.postcode != 'undefined') {
+        address.zip = billingAddress.postcode;
       }
-
-      return billingAddress;
+      this.updateAddress(address);
+      return address;
 
     },
 
     getCode: function () {
-      return "splitit_payment";
+      return 'splitit_payment';
     },
 
     getData: function () {
@@ -125,18 +165,37 @@ define([
 
     isAvailable: function () {
       var minAmount = window.checkoutConfig.payment.splitit_payment.threshold;
-      if (quote.getTotals()().base_grand_total.toFixed(2) < minAmount) {
+      try {
+        if (quote.getTotals()().base_grand_total.toFixed(2) < minAmount) {
+          return false;
+        }
+      } catch (e) {
         return false;
       }
       return true;
     },
-
+    isActive: function () {
+      return this.isChecked() === this.getCode();
+    },
     placeOrderClick: function () {
       this.placeOrder('parent');
     },
-
     splititflexfieldsAfterRender: function () {
       var thisObj = this;
+
+      var paymentButtonConfig = {
+        selector: '#splitit-btn-pay'
+      };
+      if(checkoutConfig.payment.splitit_payment.osc) {
+        paymentButtonConfig.onClick = function (buttonInstance, flexFieldsInstance) {
+          flexFieldsInstance.updateDetails(
+              {consumerData: thisObj.consumerData, billingAddress: thisObj.billingAddress},
+              function () {
+                flexFieldsInstance.checkout();
+              });
+        }
+      }
+
       var flexFieldsInstance = Splitit.FlexFields.setup({
         container: '#splitit-card-data',
         fields: {
@@ -162,15 +221,13 @@ define([
         errorBox: {
           selector: '#splitit-error-box'
         },
-        paymentButton: {
-          selector: '#splitit-btn-pay'
-        }
+        paymentButton: paymentButtonConfig
       }).ready(function () {
-        if (checkoutData.getSelectedPaymentMethod() === 'splitit_payment') {
+        if (checkoutData.getSelectedPaymentMethod() === thisObj.getCode()) {
           this.show();
         }
         var billingAddress = quote.billingAddress();
-        thisObj.prepareBillingAddress(billingAddress);
+        thisObj.prepareCustomerAddress(billingAddress);
         var email = '';
         if (quote.guestEmail) {
           email = quote.guestEmail;
@@ -253,6 +310,7 @@ define([
     },
 
     selectPaymentMethodSplitit: function () {
+      this.updateCalculations(true);
       if (!window.SplititFF._isFormVisible) {
         window.SplititFF.toggle();
       }

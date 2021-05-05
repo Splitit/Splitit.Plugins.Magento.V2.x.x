@@ -20,6 +20,7 @@ class Config
     const CONFIG_MERCHANT_USERNAME = 'payment/splitit_payment/splitit_username';
     const CONFIG_MERCHANT_PASSWORD = 'payment/splitit_payment/splitit_password';
     const CONFIG_MIN_AMOUNT = 'payment/splitit_payment/min_order_amount';
+    const CONFIG_OSC = 'payment/splitit_payment/osc';
     const CONFIG_UPSTREAM_CONTENT = 'payment/splitit_payment/upstream_messaging_enabled';
     const CONFIG_INSTALLMENT_RANGE = 'payment/splitit_payment/ranges';
     const CONFIG_DEFAULT_INSTALLMENTS_AMOUNT = 'payment/splitit_payment/upstream_default_installments';
@@ -72,6 +73,11 @@ class Config
     public function getSplititMinOrderAmount()
     {
         return (double) $this->getConfig(self::CONFIG_MIN_AMOUNT);
+    }
+
+    public function getOsc()
+    {
+        return (bool) $this->getConfig(self::CONFIG_OSC);
     }
 
 

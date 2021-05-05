@@ -1,0 +1,26 @@
+<?php
+$scriptString = <<<script
+
+require(['jquery'], function(jQuery){
+
+//<![CDATA[
+window.submitCreditMemoOffline = function() {
+    if( ! confirm('Warning, this refund will not be processed through Splitit, and hence will not be addressed to your gateway. Please run a refund from Invoice View Page. Order > Invoice > Credit Memo > Refund')) return;
+    var creditMemoOffline = jQuery('#creditmemo_do_offline');
+    if (creditMemoOffline.length) {
+        creditMemoOffline.prop('value', 1);
+    }
+    // Temporary solution will be replaced after refactoring order functionality
+    jQuery('#edit_form').triggerHandler('save');
+};
+
+//]]>
+
+});
+script;
+?>
+<?php if($this->isSplititMethod()) :?>
+    <script>
+        <?=$scriptString;?>
+    </script>
+<?php endif;?>

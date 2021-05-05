@@ -87,7 +87,6 @@ class UpstreamContentCart extends UpstreamMessaging
                         $size = count($installmentArrayItem[2]);
                         if($size % 2 == 0) {
                             $installmentNum = $installmentArrayItem[2][($size/2)-2];
-                            var_dump($installmentNum);die;
                         } else {
                             $installmentNum = $installmentArrayItem[2][ceil($size/2)-1];
                         }

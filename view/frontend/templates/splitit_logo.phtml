@@ -1,3 +1,8 @@
-<img data-splitit-placeholder="logo" data-splitit-clickable="false" height="24" width="188" data-splitit-color="informative" alt="Splitit" src="<?php echo $this->getViewFileUrl('Splitit_PaymentGateway::images/logo-informative.svg')?>" />
-
-<?= $this->getLayout()->createBlock("Splitit\PaymentGateway\Block\UpstreamMessaging")->setTemplate("Splitit_PaymentGateway::upstream-messaging-sandbox.phtml")->toHtml(); ?>
+<img data-splitit-placeholder="logo" data-splitit-clickable="false" height="24" width="220" data-splitit-color="informative" alt="Splitit" src="<?php echo $this->getViewFileUrl('Splitit_PaymentGateway::images/logo-splitit.png')?>" />
+<?php
+$evn = $this->getEnvirorment();
+?>
+<?php
+echo $this->getLayout()->createBlock("Splitit\PaymentGateway\Block\UpstreamMessaging")
+    ->setTemplate("Splitit_PaymentGateway::{$this->getTemplateName()}.phtml")->toHtml();
+?>

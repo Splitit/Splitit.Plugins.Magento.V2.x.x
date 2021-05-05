@@ -24,7 +24,7 @@ use Splitit\PaymentGateway\Gateway\Config\Config;
 use Splitit\PaymentGateway\Block\UpstreamMessaging;
 use Splitit\PaymentGateway\Helper\TouchpointHelper;
 
-class Index extends \Magento\Framework\App\Action\Action
+class Totals extends \Magento\Framework\App\Action\Action
 {
     /**
      * @var Data
@@ -95,65 +95,6 @@ class Index extends \Magento\Framework\App\Action\Action
         parent::__construct($context);
     }
 
-    protected function getCustomerName()
-    {
-        $sessionBillingAddress = $this->checkoutSession->getQuote()->getBillingAddress();
-        $sessionShippingAddress = $this->checkoutSession->getQuote()->getBillingAddress();
-        $name = $sessionBillingAddress->getName()
-            ? $sessionBillingAddress->getName()
-            : $sessionShippingAddress->getName();
-        return $name;
-    }
-
-    protected function getTelephone()
-    {
-        $sessionBillingAddress = $this->checkoutSession->getQuote()->getBillingAddress();
-        $sessionShippingAddress = $this->checkoutSession->getQuote()->getBillingAddress();
-        $telephone = $sessionBillingAddress->getTelephone()
-            ? $sessionBillingAddress->getTelephone()
-            : $sessionShippingAddress->getTelephone();
-        return $telephone;
-    }
-
-    protected function getBillingAddress()
-    {
-        $address = new DataObject((array)$this->getRequest()->getParam('billingAddress'));
-
-        $sessionBillingAddress = $this->checkoutSession->getQuote()->getBillingAddress();
-
-        $street1 = $sessionBillingAddress->getStreetLine(1);
-
-        $street2 = $sessionBillingAddress->getStreetLine(2);
-
-        $city = $sessionBillingAddress->getCity();
-
-        $region = $sessionBillingAddress->getRegion();
-
-        $country = $sessionBillingAddress->getCountry();
-
-        $postcode = $sessionBillingAddress->getPostcode();
-
-        $billingAddress = new AddressData([
-            "address_line" => $address->getData('AddressLine') ? $address->getData('AddressLine') : $street1,
-            "address_line2" => $address->getData('AddressLine2') ? $address->getData('AddressLine2') : $street2,
-            "city" => $address->getData('City') ? $address->getData('City') : $city,
-            "state" => $address->getData('State') ? $address->getData('State') : $region,
-            "country" => $address->getData('Country') ? $address->getData('Country') : $country,
-            "zip" => $address->getData('Zip') ? $address->getData('Zip') : $postcode
-        ]);
-
-        return $billingAddress;
-    }
-
-    /**
-     * @param $obj ConsumerData
-     */
-    protected function isConsumerDataValid($obj)
-    {
-        return $obj->getEmail() && $obj->getFullName() && $obj->getPhoneNumber();
-
-    }
-
     /**
      * TODO : Inject InitiateInstallmentPlanRequest, PlanData, PaymentWizardData, AddressData, CustomerData
      * TODO : Abstract MoneyWithCurrencyCode, InstallmentPlanApi . Return the object using abstracted model.
@@ -183,6 +124,7 @@ class Index extends \Magento\Framework\App\Action\Action
                 );
             }
 
+
             $installmentArray = $this->splititConfig->getInstallmentRange();
             $installmentRange = [];
             if (!empty($installmentArray)) {
@@ -196,6 +138,7 @@ class Index extends \Magento\Framework\App\Action\Action
             }
 
             $installmentRange = implode(',', array_unique($installmentRange));
+
             $currencyCode = $this->upstreamBlock->getCurrentCurrencyCode();
             $cultureName = strtolower(str_replace('_', '-', $this->upstreamBlock->getCultureName()));
             if ($cultureName == null) {
@@ -204,18 +147,13 @@ class Index extends \Magento\Framework\App\Action\Action
 
             $initiateReq = new InitiateInstallmentPlanRequest();
 
-            $planData = new PlanData();
+            $curInstallmentPlanNumber = $this->checkoutSession->getInstallmentPlanNumber() ?
+                $this->checkoutSession->getInstallmentPlanNumber() :
+                $request->getParam('installments_plan_number');
 
-            $planData->setNumberOfInstallments($request->getParam('numInstallments'));
+            $planData = new PlanData();
             $planData->setAmount(new MoneyWithCurrencyCode(["value" => $amount, "currency_code" => $currencyCode]));
-            $planData->setAutoCapture(false);
-            $planData->setRefOrderNumber($this->checkoutSession->getQuoteId());
-            $is3dSecureEnabled = $this->splititConfig->get3DSecure();
-            if ($is3dSecureEnabled) {
-                $planData->setAttempt3DSecure(true);
-            } else {
-                $planData->setAttempt3DSecure(false);
-            }
+
 
             $paymentWizard = new PaymentWizardData();
             $successAsyncUrl = $this->_url->getUrl('splititpaymentgateway/payment/successasync');
@@ -226,27 +164,9 @@ class Index extends \Magento\Framework\App\Action\Action
 
             $paymentWizard->setIsOpenedInIframe(true);
 
-
-            $billingAddress = $this->getBillingAddress();
-
-
-            $consumer = $request->getParam('consumerModel');
-            $consumerData = new ConsumerData(array(
-                "full_name" => isset($consumer['FullName']) ? $consumer['FullName'] : $this->getCustomerName(),
-                "email" => isset($consumer['Email']) ? $consumer['Email'] : $this->checkoutSession->getQuote()->getCustomerEmail(),
-                "phone_number" => isset($consumer['PhoneNumber']) ? $consumer['PhoneNumber'] : $this->getTelephone(),
-                "culture_name" => $cultureName,
-                "is_locked" => false,
-                "is_data_restricted" => false,
-            ));
-
             $initiateReq->setPlanData($planData)
                 ->setPaymentWizardData($paymentWizard);
-            if($this->isConsumerDataValid($consumerData)) {
-                $initiateReq
-                    ->setConsumerData($consumerData)
-                    ->setBillingAddress($billingAddress);
-            }
+            $initiateReq->setInstallmentPlanNumber($curInstallmentPlanNumber);
 
             $initResp = $installmentPlanApi->installmentPlanInitiate($initiateReq);
 
